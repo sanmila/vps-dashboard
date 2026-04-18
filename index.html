@@ -291,7 +291,7 @@
             }
         }
         async function toggleNginx(site, action) {
-            if (action === 'stop' && !confirm(\`Are you sure you want to take \${site} OFFLINE? Visitors will not be able to connect! \`)) return;
+            if (action === 'stop' && !confirm(`Are you sure you want to take ${site} OFFLINE? Visitors will not be able to connect! `)) return;
             try {
                 const res = await fetch('/api/nginx/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ site, action }) });
                 const data = await res.json();
@@ -301,30 +301,30 @@
         }
 
         async function generateSSL(siteName) {
-            const domain = prompt(\`Please enter the EXACT domain name you want to secure for configuration '\${siteName}' (e.g. preview.sanjay.ru). \\n\\nIMPORTANT: Let's Encrypt requires the domain to be routed to your server IP first!\`);
+            const domain = prompt(`Please enter the EXACT domain name you want to secure for configuration '${siteName}' (e.g. preview.sanjay.ru). \n\nIMPORTANT: Let's Encrypt requires the domain to be routed to your server IP first!`);
             if (!domain) return;
             document.body.style.cursor = 'wait'; const logTitle = document.getElementById('log-title'); const logContent = document.getElementById('log-content');
-            logTitle.innerText = 'Installing SSL for ' + domain + '...'; logContent.innerText = 'Negotiating cryptographic ACME challenge with Let\\'s Encrypt servers... \\n\\nThis process modifies the Nginx blocks safely and reloads routing. \\n\\nIt may take up to 20 seconds. Please wait!';
+            logTitle.innerText = 'Installing SSL for ' + domain + '...'; logContent.innerText = 'Negotiating cryptographic ACME challenge with Let\'s Encrypt servers... \n\nThis process modifies the Nginx blocks safely and reloads routing. \n\nIt may take up to 20 seconds. Please wait!';
             openModal('log-modal');
             try {
                 const res = await fetch('/api/nginx/ssl', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ domain }) });
                 const data = await res.json(); document.body.style.cursor = 'default';
-                if (data.error) { logTitle.innerText = 'SSL Request Failed'; logContent.innerText = 'ERROR: ' + data.error + '\\n\\n' + (data.logs || ''); } 
-                else { logTitle.innerText = 'SSL Successfully Installed! 🎉'; logContent.innerText = data.logs + '\\n\\nYour site \\"' + domain + '\\" is now secured with HTTPS!'; loadDashboard(); }
+                if (data.error) { logTitle.innerText = 'SSL Request Failed'; logContent.innerText = 'ERROR: ' + data.error + '\n\n' + (data.logs || ''); } 
+                else { logTitle.innerText = 'SSL Successfully Installed! 🎉'; logContent.innerText = data.logs + '\n\nYour site \\"' + domain + '\\" is now secured with HTTPS!'; loadDashboard(); }
             } catch(e) { document.body.style.cursor = 'default'; logTitle.innerText = 'Network Error'; logContent.innerText = 'Failed to connect to the server measuring SSL request.'; }
         }
 
         async function changeDomain(siteName) {
-            const newDomain = prompt(\`Migrating config '\${siteName}' to a new domain.\\n\\nType the completely NEW custom domain the client has provided (e.g. clientdomain.com).\\n\\nWARNING: This will DESTROY the old configuration route permanently to install the new routing layer!\`);
+            const newDomain = prompt(`Migrating config '${siteName}' to a new domain.\n\nType the completely NEW custom domain the client has provided (e.g. clientdomain.com).\n\nWARNING: This will DESTROY the old configuration route permanently to install the new routing layer!`);
             if (!newDomain) return;
             document.body.style.cursor = 'wait'; const logTitle = document.getElementById('log-title'); const logContent = document.getElementById('log-content');
-            logTitle.innerText = 'Reforging Route for ' + newDomain + '...'; logContent.innerText = 'Parsing old configuration targets...\\nWriting pristine HTTP blocks...\\nAutomatically switching traffic flows...';
+            logTitle.innerText = 'Reforging Route for ' + newDomain + '...'; logContent.innerText = 'Parsing old configuration targets...\nWriting pristine HTTP blocks...\nAutomatically switching traffic flows...';
             openModal('log-modal');
             try {
                 const res = await fetch('/api/nginx/change-domain', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ oldSite: siteName, newDomain }) });
                 const data = await res.json(); document.body.style.cursor = 'default';
                 if (data.error) { logTitle.innerText = 'Reforging Failed'; logContent.innerText = 'ERROR: ' + data.error; } 
-                else { logTitle.innerText = 'Domain Successfully Reforged! 🚀'; logContent.innerText = \`Route perfectly mapped to \${newDomain}!\\n\\nThe old configuration has been securely deleted.\\nThe new domain is now live!\\n\\nNote: Click 'Add SSL' to encrypt it.\`; loadDashboard(); }
+                else { logTitle.innerText = 'Domain Successfully Reforged! 🚀'; logContent.innerText = `Route perfectly mapped to ${newDomain}!\n\nThe old configuration has been securely deleted.\nThe new domain is now live!\n\nNote: Click 'Add SSL' to encrypt it.`; loadDashboard(); }
             } catch(e) { document.body.style.cursor = 'default'; logTitle.innerText = 'Network Error'; logContent.innerText = 'Failed to connect to the server.'; }
         }
 
@@ -367,7 +367,7 @@
             if(data.error) return alert(data.error);
             
             currentPath = data.currentPath;
-            let breadcrumbHTML = \`<span class="breadcrumb-item" onclick="loadFiles('/var/www')">/var/www</span>\`;
+            let breadcrumbHTML = `<span class="breadcrumb-item" onclick="loadFiles('/var/www')">/var/www</span>`;
             
             let pathTracking = '/var/www';
             if (currentPath.startsWith('/var/www/')) {
@@ -375,26 +375,26 @@
                 subParts.forEach((part, index) => {
                     pathTracking += '/' + part;
                     breadcrumbHTML += '<span class="breadcrumb-separator">/</span>';
-                    breadcrumbHTML += \`<span class="breadcrumb-item" onclick="loadFiles('\${pathTracking}')">\${part}</span>\`;
+                    breadcrumbHTML += `<span class="breadcrumb-item" onclick="loadFiles('${pathTracking}')">${part}</span>`;
                 });
-            } else { breadcrumbHTML = \`<span class="breadcrumb-item" onclick="loadFiles('\${currentPath}')">\${currentPath}</span>\`;}
+            } else { breadcrumbHTML = `<span class="breadcrumb-item" onclick="loadFiles('${currentPath}')">${currentPath}</span>`;}
             document.getElementById('fm-path').innerHTML = breadcrumbHTML;
             
             document.getElementById('fm-list').innerHTML = data.files.map(f => {
                 const sizeDisplay = f.isDir ? '-' : (Math.round((f.size || 0)/1024) + ' KB');
-                return \`
+                return `
                 <tr>
-                    <td>\${f.isDir ? '📁' : '📄'}</td>
+                    <td>${f.isDir ? '📁' : '📄'}</td>
                     <td>
-                        \${f.name === '..' ? 
-                            \`<span class="clickable" onclick="loadFiles('\${f.path}')">↩ Go Back</span>\` :
+                        ${f.name === '..' ? 
+                            `<span class="clickable" onclick="loadFiles('${f.path}')">↩ Go Back</span>` :
                         f.isDir ? 
-                            \`<span class="clickable" onclick="loadFiles('\${f.path}')">\${f.name}/</span>\` : 
-                            \`<span class="clickable" onclick="editFile('\${f.path}')">\${f.name}</span>\`}
+                            `<span class="clickable" onclick="loadFiles('${f.path}')">${f.name}/</span>` : 
+                            `<span class="clickable" onclick="editFile('${f.path}')">${f.name}</span>`}
                     </td>
-                    <td>\${sizeDisplay}</td>
+                    <td>${sizeDisplay}</td>
                 </tr>
-            \`}).join('') || '<tr><td colspan="3">Empty directory</td></tr>';
+            `}).join('') || '<tr><td colspan="3">Empty directory</td></tr>';
         }
 
         async function editFile(filePath) {
@@ -464,10 +464,10 @@
                     } catch(e) {
                          retries++;
                          if (retries <= 15) {
-                             logContent.innerText += '\\nWaiting for connection...';
+                             logContent.innerText += '\nWaiting for connection...';
                          } else {
                              clearInterval(checkInterval);
-                             logContent.innerText += '\\n\\nTaking longer than expected to reconnect. Please manually refresh the page.';
+                             logContent.innerText += '\n\nTaking longer than expected to reconnect. Please manually refresh the page.';
                              document.body.style.cursor = 'default';
                          }
                     }
@@ -492,7 +492,7 @@
             const logTitle = document.getElementById('log-title');
             const logContent = document.getElementById('log-content');
             logTitle.innerText = 'Uploading & Extracting...';
-            logContent.innerText = `Uploading ${file.name} to ${currentPath}...\\nThis may take a minute for large files. Please wait!`;
+            logContent.innerText = `Uploading ${file.name} to ${currentPath}...\nThis may take a minute for large files. Please wait!`;
             openModal('log-modal');
 
             try {
