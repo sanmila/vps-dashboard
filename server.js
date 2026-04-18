@@ -301,6 +301,7 @@ app.post('/api/files/upload', upload.single('siteFile'), (req, res) => {
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             res.status(500).json({error: 'Failed to move file ' + err.message});
         }
+    }
 });
 
 app.post('/api/server/restart', (req, res) => {
