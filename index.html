@@ -200,7 +200,7 @@
 
         async function loadDashboard() {
             try {
-                const res = await fetch('/api/stats');
+                const res = await fetch('/api/stats?t=' + Date.now());
                 const data = await res.json();
                 
                 // Disk / RAM logic untouched
@@ -212,49 +212,53 @@
                 }
 
                 const pm2Grid = document.getElementById('pm2-grid');
-                pm2Grid.innerHTML = data.pm2.map(app => \`
+                pm2Grid.innerHTML = data.pm2.map(app => `
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">\${app.name}</h3><span class="badge \${app.status === 'online' ? 'bg-online' : 'bg-stopped'}">\${app.status.toUpperCase()}</span></div>
-                        <div class="stat-line"><span class="stat-label">Memory:</span> <span>\${app.memory}</span></div><div class="stat-line"><span class="stat-label">CPU:</span> <span>\${app.cpu}%</span></div><div class="stat-line"><span class="stat-label">Uptime:</span> <span>\${app.uptime}</span></div>
-                        <div class="btn-group"><button class="btn-green" onclick="pm2Action('restart', '\${app.name}')">Restart</button><button class="\${app.status === 'online' ? 'btn-red' : 'btn-green'}" onclick="pm2Action('\${app.status === 'online' ? 'stop' : 'start'}', '\${app.name}')">\${app.status === 'online' ? 'Stop' : 'Start'}</button><button class="btn-blue" onclick="viewLogs('\${app.name}')">Logs</button></div>
+                        <div class="card-header"><h3 class="card-title">${app.name}</h3><span class="badge ${app.status === 'online' ? 'bg-online' : 'bg-stopped'}">${app.status.toUpperCase()}</span></div>
+                        <div class="stat-line"><span class="stat-label">Memory:</span> <span>${app.memory}</span></div><div class="stat-line"><span class="stat-label">CPU:</span> <span>${app.cpu}%</span></div><div class="stat-line"><span class="stat-label">Uptime:</span> <span>${app.uptime}</span></div>
+                        <div class="btn-group"><button class="btn-green" onclick="pm2Action('restart', '${app.name}')">Restart</button><button class="${app.status === 'online' ? 'btn-red' : 'btn-green'}" onclick="pm2Action('${app.status === 'online' ? 'stop' : 'start'}', '${app.name}')">${app.status === 'online' ? 'Stop' : 'Start'}</button><button class="btn-blue" onclick="viewLogs('${app.name}')">Logs</button></div>
                     </div>
-                \`).join('') || '<div style="color:var(--muted)">No apps running.</div>';
+                `).join('') || '<div style="color:var(--muted)">No apps running.</div>';
 
                 document.getElementById('nginx-list').innerHTML = data.nginx.map(site => {
                     const protocol = site.hasSSL ? 'https://' : 'http://';
                     const isRealDomain = site.domain && site.domain !== 'Unknown' && site.domain !== '_' && site.domain.includes('.');
                     const domainRenderer = isRealDomain 
-                        ? \`<a href="\${protocol}\${site.domain}" target="_blank" class="domain-link" title="Open \${site.domain} in new tab">\${site.domain}</a>\` 
-                        : \`<strong style="font-size:1.05rem; color:var(--muted)">\${site.domain}</strong>\`;
+                        ? `<a href="${protocol}${site.domain}" target="_blank" class="domain-link" title="Open ${site.domain} in new tab">${site.domain}</a>` 
+                        : `<strong style="font-size:1.05rem; color:var(--muted)">${site.domain}</strong>`;
 
-                    return \`
+                    return `
                     <tr>
-                        <td><strong style="color:var(--muted); font-size:0.9rem;">\${site.name}</strong></td>
-                        <td style="word-break: break-all; min-width:200px;">\${domainRenderer}</td>
-                        <td><span style="font-family:monospace;font-size:1.1rem;background:rgba(255,255,255,0.05);padding:0.2rem 0.5rem;border-radius:0.2rem">\${site.size}</span></td>
+                        <td><strong style="color:var(--muted); font-size:0.9rem;">${site.name}</strong></td>
+                        <td style="word-break: break-all; min-width:200px;">${domainRenderer}</td>
+                        <td><span style="font-family:monospace;font-size:1.1rem;background:rgba(255,255,255,0.05);padding:0.2rem 0.5rem;border-radius:0.2rem">${site.size}</span></td>
                         <td>
                             <div style="display:flex; align-items:center; gap:1rem;">
-                                <span class="badge \${site.status === 'online' ? 'bg-online' : 'bg-stopped'}">\${site.status.toUpperCase()}</span>
-                                <button class="\${site.status === 'online' ? 'btn-red' : 'btn-green'}" onclick="toggleNginx('\${site.name}', '\${site.status === 'online' ? 'stop' : 'start'}')" style="padding:0.2rem 0.8rem">
-                                    \${site.status === 'online' ? 'Take Offline' : 'Bring Online'}
+                                <span class="badge ${site.status === 'online' ? 'bg-online' : 'bg-stopped'}">${site.status.toUpperCase()}</span>
+                                <button class="${site.status === 'online' ? 'btn-red' : 'btn-green'}" onclick="toggleNginx('${site.name}', '${site.status === 'online' ? 'stop' : 'start'}')" style="padding:0.2rem 0.8rem">
+                                    ${site.status === 'online' ? 'Take Offline' : 'Bring Online'}
                                 </button>
                             </div>
                         </td>
                         <td>
-                            \${site.hasSSL ? 
-                                \`<span class="badge bg-secured">🛡️ Secured</span>\` : 
-                                (site.status === 'online' ? \`<button class="btn-green" style="background:#10b981;" onclick="generateSSL('\${site.name}')">🔒 Add SSL</button>\` : \`<span style="color:var(--muted); font-size:0.8rem">Must be online</span>\`)
+                            ${site.hasSSL ? 
+                                `<span class="badge bg-secured">🛡️ Secured</span>` : 
+                                (site.status === 'online' ? `<button class="btn-green" style="background:#10b981;" onclick="generateSSL('${site.name}')">🔒 Add SSL</button>` : `<span style="color:var(--muted); font-size:0.8rem">Must be online</span>`)
                             }
                         </td>
                         <td>
                             <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-                                <button class="btn-blue" onclick="editNginx('\${site.name}')">Edit Mapping</button>
-                                <button class="btn-warning" style="background:#f59e0b; color:white; border:none; padding: 0.4rem 0.7rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem; font-weight: 600;" onclick="changeDomain('\${site.name}')">Change Domain</button>
+                                <button class="btn-blue" onclick="editNginx('${site.name}')">Edit Mapping</button>
+                                <button class="btn-warning" style="background:#f59e0b; color:white; border:none; padding: 0.4rem 0.7rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem; font-weight: 600;" onclick="changeDomain('${site.name}')">Change Domain</button>
                             </div>
                         </td>
                     </tr>
-                \`}).join('') || '<tr><td colspan="6">No sites configured.</td></tr>';
-            } catch(e) { console.error(e); }
+                `}).join('') || '<tr><td colspan="6">No sites configured.</td></tr>';
+            } catch(e) { 
+                console.error(e); 
+                alert('Failed to load dashboard data.');
+                document.getElementById('pm2-grid').innerHTML = '<div style="color:var(--error); font-weight:bold;">Fatal Error: Could not load data from API. Please refresh the page!</div>';
+            }
         }
 
         async function pm2Action(action, name) {
