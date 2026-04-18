@@ -82,9 +82,9 @@
     </div>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
-        <div class="tab" onclick="switchTab('nginx')">Nginx Router</div>
-        <div class="tab" onclick="switchTab('files')">File Manager</div>
+        <div class="tab active" onclick="switchTab('dashboard', this)">Dashboard</div>
+        <div class="tab" onclick="switchTab('nginx', this)">Nginx Router</div>
+        <div class="tab" onclick="switchTab('files', this)">File Manager</div>
     </div>
 
     <!-- DASHBOARD TAB -->
@@ -180,10 +180,15 @@
     </div>
 
     <script>
-        function switchTab(id) {
+        function switchTab(id, el) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
+            if (el) el.classList.add('active');
+            else {
+                if(id === 'dashboard') document.querySelectorAll('.tab')[0].classList.add('active');
+                if(id === 'nginx') document.querySelectorAll('.tab')[1].classList.add('active');
+                if(id === 'files') document.querySelectorAll('.tab')[2].classList.add('active');
+            }
             document.getElementById('tab-' + id).classList.add('active');
             if(id === 'dashboard') loadDashboard();
             if(id === 'nginx') loadDashboard();
@@ -252,8 +257,35 @@
             } catch(e) { console.error(e); }
         }
 
-        async function pm2Action(action, name) { /* unchanged */ }
-        async function viewLogs(name) { /* unchanged */ }
+        async function pm2Action(action, name) {
+            if (action === 'stop' && !confirm(`Are you sure you want to stop ${name} PM2 instance?`)) return;
+            if (action === 'delete' && !confirm(`Are you sure you want to delete ${name}?`)) return;
+            
+            document.body.style.cursor = 'wait';
+            try {
+                const res = await fetch('/api/pm2/action', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action, name })
+                });
+                await res.json();
+                loadDashboard();
+            } catch(e) { alert('PM2 action failed'); }
+            document.body.style.cursor = 'default';
+        }
+        
+        async function viewLogs(name) {
+            document.getElementById('log-title').innerText = name + ' Logs';
+            document.getElementById('log-content').innerText = 'Loading logs...';
+            openModal('log-modal');
+            try {
+                const res = await fetch(`/api/pm2/logs?name=${name}`);
+                const data = await res.json();
+                document.getElementById('log-content').innerText = data.logs || 'No logs available';
+            } catch(e) {
+                document.getElementById('log-content').innerText = 'Failed to load logs.';
+            }
+        }
         async function toggleNginx(site, action) {
             if (action === 'stop' && !confirm(\`Are you sure you want to take \${site} OFFLINE? Visitors will not be able to connect! \`)) return;
             try {
@@ -361,7 +393,45 @@
             \`}).join('') || '<tr><td colspan="3">Empty directory</td></tr>';
         }
 
-        async function editFile(filePath) { /* unchanged */ }
+        async function editFile(filePath) {
+            document.getElementById('editor-title').innerText = 'Editing: ' + filePath;
+            document.getElementById('editor-textarea').value = 'Loading...';
+            document.getElementById('editor-status').innerText = '';
+            currentEditingFile = filePath;
+            openModal('editor-modal');
+            try {
+                const res = await fetch('/api/files/read?path=' + encodeURIComponent(filePath));
+                const data = await res.json();
+                document.getElementById('editor-textarea').value = data.content || '';
+                
+                document.getElementById('editor-save-btn').onclick = async () => {
+                    const content = document.getElementById('editor-textarea').value;
+                    document.getElementById('editor-save-btn').innerText = 'Saving...';
+                    document.getElementById('editor-save-btn').disabled = true;
+                    
+                    try {
+                        const sRes = await fetch('/api/files/save', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ path: currentEditingFile, content })
+                        });
+                        const sData = await sRes.json();
+                        if(sData.error) {
+                            document.getElementById('editor-status').innerText = sData.error;
+                        } else {
+                            closeModal('editor-modal');
+                            loadFiles(currentPath);
+                        }
+                    } catch(e) {
+                        document.getElementById('editor-status').innerText = 'Network error saving file.';
+                    }
+                    
+                    document.getElementById('editor-save-btn').innerText = 'Save Changes';
+                    document.getElementById('editor-save-btn').disabled = false;
+                };
+            } catch(e) {
+                document.getElementById('editor-textarea').value = 'Failed to load file contents.';
+            }
+        }
 
         async function restartDashboardServer() {
             if (!confirm("Are you sure you want to restart the dashboard server? The connection will drop momentarily.")) return;
