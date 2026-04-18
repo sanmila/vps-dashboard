@@ -35,4 +35,12 @@ Extensive diagnostics using direct SSH tunneling (`deploy.js` / `ssh_cmd.js`) we
 - **Dashboard Process:** Running securely under `vps-dashboard` (PM2 Node port `9000`)
 - **Git Alignment:** Local `d:\websites\vps-dashboard` securely tracks upstream `sanmila/vps-dashboard` (`origin/main`). State is fully in-phase with VPS filesystem execution limits.
 
+## 🔮 Future Implementations
+
+### Hardware Security Module (USB Air-Gap SSH)
+We have a planned roadmap to map the main authentication cryptographic key (`id_ed25519`) directly onto a portable physical USB drive. 
+* **Execution Goal:** Strip the private key off the local `C:\` hard drive and store it permanently on an external flash drive assigned to a fixed Windows volume (e.g. `E:\`). 
+* **Configuration Target:** Create a `~/.ssh/config` block routing `IdentityFile E:\id_ed25519` to the VPS connection.
+* **Outcome:** The VPS becomes absolutely inaccessible to developers and automated agents unless the physical USB drive is physically inserted into the local machine. This acts as an invincible air-gapped hardware verification.
+
 *Document generated autonomously. All changes have been permanently synchronized to GitHub and the remote machine deployment layer.*
