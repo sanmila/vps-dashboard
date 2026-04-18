@@ -96,11 +96,7 @@ app.get('/api/stats', (req, res) => {
 
                                     const match = content.match(/root\s+([^;]+);/);
                                     if (match && match[1]) {
-                                        const rootPath = match[1].trim();
-                                        try {
-                                            const duOut = execSync(`du -sh ${rootPath} 2>/dev/null`, {encoding:'utf8'});
-                                            size = duOut.split('\t')[0].trim();
-                                        } catch(e) { size = '?'; }
+                                        size = match[1].trim();
                                     }
                                 }
                                 resolve({ name: site, domain: domain, status: isEnabled ? 'online' : 'stopped', size: size, hasSSL: hasSSL });
