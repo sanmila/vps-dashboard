@@ -75,7 +75,10 @@
 <body>
     <div class="header">
         <h1>🖥️ Server Command Center</h1>
-        <button class="btn-blue" onclick="loadDashboard()">🔄 Refresh</button>
+        <div>
+            <button class="btn-warning" style="margin-right: 0.5rem; background: var(--warning); color: white;" onclick="restartDashboardServer()">⚡ Restart Server</button>
+            <button class="btn-blue" onclick="loadDashboard()">🔄 Refresh</button>
+        </div>
     </div>
 
     <div class="tabs">
@@ -133,7 +136,11 @@
 
     <!-- FILE MANAGER TAB -->
     <div id="tab-files" class="content-area">
-        <div class="breadcrumb" id="fm-path">/var/www</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center;">
+            <div class="breadcrumb" id="fm-path" style="margin-bottom:0; flex-grow:1; margin-right:1rem;">/var/www</div>
+            <button class="btn-green btn-large" onclick="document.getElementById('upload-input').click()">📤 Upload Site (ZIP)</button>
+            <input type="file" id="upload-input" style="display:none" accept=".zip,.html,.js,.css" onchange="uploadSite(this)">
+        </div>
         <div class="table-wrap">
             <table>
                 <thead><tr><th style="width:50px">Type</th><th>Name</th><th>Size</th></tr></thead>
@@ -355,6 +362,87 @@
         }
 
         async function editFile(filePath) { /* unchanged */ }
+
+        async function restartDashboardServer() {
+            if (!confirm("Are you sure you want to restart the dashboard server? The connection will drop momentarily.")) return;
+            
+            document.body.style.cursor = 'wait';
+            const logTitle = document.getElementById('log-title');
+            const logContent = document.getElementById('log-content');
+            logTitle.innerText = 'Restarting Server...';
+            logContent.innerText = 'Sending restart signal to the dashboard process... Please wait as the service reconnects.';
+            openModal('log-modal');
+
+            try {
+                await fetch('/api/server/restart', { method: 'POST' });
+                
+                let retries = 0;
+                const checkInterval = setInterval(async () => {
+                    try {
+                        const check = await fetch('/api/stats', { cache: 'no-store', method: 'HEAD' });
+                        if (check.ok) {
+                            clearInterval(checkInterval);
+                            logTitle.innerText = 'Restart Complete! 🎉';
+                            logContent.innerText = 'The dashboard server successfully restarted and is back online.';
+                            document.body.style.cursor = 'default';
+                            setTimeout(() => { closeModal('log-modal'); loadDashboard(); }, 2000);
+                        }
+                    } catch(e) {
+                         retries++;
+                         if (retries <= 15) {
+                             logContent.innerText += '\\nWaiting for connection...';
+                         } else {
+                             clearInterval(checkInterval);
+                             logContent.innerText += '\\n\\nTaking longer than expected to reconnect. Please manually refresh the page.';
+                             document.body.style.cursor = 'default';
+                         }
+                    }
+                }, 2000);
+
+            } catch(e) {
+                document.body.style.cursor = 'default';
+                logTitle.innerText = 'Restart Error';
+                logContent.innerText = 'Request failed: ' + e.message;
+            }
+        }
+
+        async function uploadSite(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            
+            const formData = new FormData();
+            formData.append('siteFile', file);
+            formData.append('path', currentPath);
+
+            document.body.style.cursor = 'wait';
+            const logTitle = document.getElementById('log-title');
+            const logContent = document.getElementById('log-content');
+            logTitle.innerText = 'Uploading & Extracting...';
+            logContent.innerText = `Uploading ${file.name} to ${currentPath}...\\nThis may take a minute for large files. Please wait!`;
+            openModal('log-modal');
+
+            try {
+                const res = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                document.body.style.cursor = 'default';
+                if (data.error) {
+                    logTitle.innerText = 'Upload Failed ❌';
+                    logContent.innerText = 'ERROR: ' + data.error;
+                } else {
+                    logTitle.innerText = 'Upload Successful! 🎉';
+                    logContent.innerText = data.message || 'File uploaded and extracted successfully!';
+                    loadFiles(currentPath);
+                }
+            } catch (e) {
+                document.body.style.cursor = 'default';
+                logTitle.innerText = 'Network Error';
+                logContent.innerText = 'Upload request failed: ' + e.message;
+            }
+            input.value = ''; // Reset input
+        }
 
         loadDashboard();
     </script>

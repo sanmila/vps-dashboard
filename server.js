@@ -3,9 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
 const basicAuth = require('express-basic-auth');
+const multer = require('multer');
+const AdmZip = require('adm-zip');
+const os = require('os');
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+const upload = multer({ dest: os.tmpdir() });
 
 app.use(basicAuth({
     users: { 'superadmin': 'Champion@1986' },
@@ -266,6 +270,44 @@ app.post('/api/files/save', (req, res) => {
         if (err) return res.status(500).json({error: err.message});
         res.json({success: true});
     });
+});
+
+app.post('/api/files/upload', upload.single('siteFile'), (req, res) => {
+    const targetPath = path.resolve(req.body.path || BASE_DIR);
+    if (!targetPath.startsWith(BASE_DIR)) {
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        return res.status(403).json({error: 'Access denied'});
+    }
+    
+    if (!req.file) return res.status(400).json({error: 'No file uploaded'});
+
+    if (req.file.originalname.toLowerCase().endsWith('.zip')) {
+        try {
+            const zip = new AdmZip(req.file.path);
+            zip.extractAllTo(targetPath, true);
+            fs.unlinkSync(req.file.path);
+            res.json({success: true, message: 'Website extracted successfully to ' + targetPath + '!'});
+        } catch (e) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            res.status(500).json({error: 'Failed to extract zip: ' + e.message});
+        }
+    } else {
+        try {
+            const finalPath = path.join(targetPath, req.file.originalname);
+            fs.copyFileSync(req.file.path, finalPath);
+            fs.unlinkSync(req.file.path);
+            res.json({success: true, message: 'File uploaded successfully to ' + targetPath + '!'});
+        } catch (err) {
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            res.status(500).json({error: 'Failed to move file ' + err.message});
+        }
+});
+
+app.post('/api/server/restart', (req, res) => {
+    res.json({ success: true, message: 'Server restarting...' });
+    setTimeout(() => {
+        process.exit(0);
+    }, 1000);
 });
 
 app.listen(9000, () => console.log('VPS Dashboard running on 9000'));
